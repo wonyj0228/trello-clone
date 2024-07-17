@@ -2,7 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { RecoilRoot } from 'recoil';
-import { createGlobalStyle } from 'styled-components';
+import { createGlobalStyle, ThemeProvider } from 'styled-components';
+import { darkTheme } from './theme';
 
 const GlobalStyle = createGlobalStyle`
   html, body, div, span, applet, object, iframe,
@@ -48,6 +49,22 @@ table {
 	border-collapse: collapse;
 	border-spacing: 0;
 }
+
+
+//////////////Custom/////////////////
+body {
+	font-weight: 300;
+	font-family: 'Source Sans Pro', sans-serif;
+	background-color: ${(props) => props.theme.bgColor};
+	color: black;
+	line-height: 1.2;
+}
+
+a {
+	text-decoration: none;
+	color: inherit;
+}
+
 `;
 
 const root = ReactDOM.createRoot(
@@ -55,7 +72,9 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   <RecoilRoot>
-    <GlobalStyle />
-    <App />
+    <ThemeProvider theme={darkTheme}>
+      <GlobalStyle />
+      <App />
+    </ThemeProvider>
   </RecoilRoot>
 );
