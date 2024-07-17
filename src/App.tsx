@@ -1,9 +1,12 @@
-import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
+import { useRecoilState } from 'recoil';
 import styled from 'styled-components';
+import { toDoState } from './atoms';
+import Board from './components/Board';
 
 const Wrapper = styled.div`
   display: flex;
-  max-width: 480px;
+  max-width: 680px;
   width: 100%;
   margin: 0 auto;
   justify-content: center;
@@ -14,22 +17,8 @@ const Wrapper = styled.div`
 const Boards = styled.div`
   display: grid;
   width: 100%;
-  grid-template-columns: repeat(1, 1fr);
-`;
-
-const Board = styled.div`
-  padding: 20px 10px;
-  padding-top: 30px;
-  background-color: ${(props) => props.theme.boardColor};
-  border-radius: 5px;
-  min-height: 200px;
-`;
-
-const Card = styled.div`
-  border-radius: 5px;
-  padding: 10px 10px;
-  margin-bottom: 5px;
-  background-color: ${(props) => props.theme.cardColor};
+  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
 `;
 
 /**
@@ -42,7 +31,8 @@ const Card = styled.div`
  * : 필수 props = onDragEnd
  *
  * onDragEnd
- * :
+ * : Drag가 끝났을 때 실행되는 func
+ * : drag한 요소가 무엇인지, destination이 어디인지 (idx, droppableId).. 등등 args로 넘겨주며 알려줌
  *
  *
  * Droppable
@@ -56,7 +46,8 @@ const Card = styled.div`
  *
  * Droppable 함수의 parameter(provided)
  * : innerRef(필수) = beautiful-dnd가 React dom을 활용할 수 있게 함.
- * : droppableProps = beautiful-dnd의 droppable로써 사용될 수 있게 스타일링 과 같은 속성이 포함되어 있다.
+ * : droppableProps(필수) = beautiful-dnd의 droppable로써 사용될 수 있게 스타일링 과 같은 속성이 포함되어 있다.
+ * : placeholder(옵션) = droppable의 사이즈가 draggable이 사라지더라도 변화하지않고 유지된다.
  *
  *
  *
@@ -64,6 +55,7 @@ const Card = styled.div`
  * : Droppable 영역 안에서 실제 드래그 하는 영역
  * : 필수 props = draggableId (drag 영역의 Id), index(index순대로 droppable 안에서 정렬됨)
  * : 자식요소 필수
+ * : draggable의 key와 draggableId는 같아야 함
  *
  * Draggable child
  * <Draggable draggableId="id" index={0}>{(provided)=><></>}</Draggable>
@@ -74,34 +66,51 @@ const Card = styled.div`
  *
  */
 
-const toDos = ['a', 'b', 'c', 'd', 'e', 'f'];
-
 function App() {
-  const onDragEnd = () => {};
+  const [toDos, setToDos] = useRecoilState(toDoState);
+
+  const onDragEnd = (info: DropResult) => {
+    console.log(info);
+    const { destination, draggableId, source } = info;
+
+    if (!destination) return; // destination은 null이나 undefined일 수 있음
+
+    // 같은 board 내 움직임
+    if (source.droppableId === destination?.droppableId) {
+      setToDos((allBoards) => {
+        const boardCopy = [...allBoards[source.droppableId]];
+
+        boardCopy.splice(source.index, 1);
+        boardCopy.splice(destination?.index, 0, draggableId);
+        return {
+          ...allBoards,
+          [source.droppableId]: boardCopy,
+        };
+      });
+      // 다른 board끼리 움직임
+    } else if (source.droppableId !== destination?.droppableId) {
+      setToDos((allBoards) => {
+        const sourceBoard = [...allBoards[source.droppableId]];
+        const destinationBoard = [...allBoards[destination.droppableId]];
+
+        sourceBoard.splice(source.index, 1);
+        destinationBoard.splice(destination.index, 0, draggableId);
+
+        return {
+          ...allBoards,
+          [source.droppableId]: sourceBoard,
+          [destination.droppableId]: destinationBoard,
+        };
+      });
+    }
+  };
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <Wrapper>
         <Boards>
-          <Droppable droppableId="one">
-            {(magic) => (
-              <Board ref={magic.innerRef} {...magic.droppableProps}>
-                {toDos.map((toDo, idx) => (
-                  <Draggable draggableId={toDo} index={idx}>
-                    {(provided) => (
-                      <Card
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                      >
-                        {toDo}
-                      </Card>
-                    )}
-                  </Draggable>
-                ))}
-                {magic.placeholder}
-              </Board>
-            )}
-          </Droppable>
+          {Object.keys(toDos).map((boardId) => {
+            return <Board boardId={boardId} toDos={toDos[boardId]} />;
+          })}
         </Boards>
       </Wrapper>
     </DragDropContext>
