@@ -70,34 +70,32 @@ function App() {
   const [toDos, setToDos] = useRecoilState(toDoState);
 
   const onDragEnd = (info: DropResult) => {
-    console.log(info);
+    // draggableId는 toDo의 key값만 전달해 줌
     const { destination, draggableId, source } = info;
 
     if (!destination) return; // destination은 null이나 undefined일 수 있음
 
-    // 같은 board 내 움직임
-    if (source.droppableId === destination?.droppableId) {
+    if (source.droppableId === destination.droppableId) {
       setToDos((allBoards) => {
         const boardCopy = [...allBoards[source.droppableId]];
+        const taskObj = boardCopy[source.index];
 
         boardCopy.splice(source.index, 1);
-        boardCopy.splice(destination?.index, 0, draggableId);
-        return {
-          ...allBoards,
-          [source.droppableId]: boardCopy,
-        };
+        boardCopy.splice(destination.index, 0, taskObj);
+
+        return { ...allBoards, [source.droppableId]: boardCopy };
       });
-      // 다른 board끼리 움직임
-    } else if (source.droppableId !== destination?.droppableId) {
-      setToDos((allBoards) => {
-        const sourceBoard = [...allBoards[source.droppableId]];
-        const destinationBoard = [...allBoards[destination.droppableId]];
+    } else if (source.droppableId !== destination.droppableId) {
+      setToDos((allBoard) => {
+        const sourceBoard = [...allBoard[source.droppableId]];
+        const destinationBoard = [...allBoard[destination.droppableId]];
+        const taskObj = sourceBoard[source.index];
 
         sourceBoard.splice(source.index, 1);
-        destinationBoard.splice(destination.index, 0, draggableId);
+        destinationBoard.splice(destination.index, 0, taskObj);
 
         return {
-          ...allBoards,
+          ...allBoard,
           [source.droppableId]: sourceBoard,
           [destination.droppableId]: destinationBoard,
         };
@@ -109,7 +107,9 @@ function App() {
       <Wrapper>
         <Boards>
           {Object.keys(toDos).map((boardId) => {
-            return <Board boardId={boardId} toDos={toDos[boardId]} />;
+            return (
+              <Board key={boardId} boardId={boardId} toDos={toDos[boardId]} />
+            );
           })}
         </Boards>
       </Wrapper>
